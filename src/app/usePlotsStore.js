@@ -4,7 +4,6 @@ import axios from 'axios';
 export const usePlotsStore = defineStore('plotsStore', {
   state: () => ({
     data: [],
-    status: 'idle',
   }),
   getters: { doubleCount: (state) => state.data * 2 },
   actions: {
@@ -27,7 +26,6 @@ export const usePlotsStore = defineStore('plotsStore', {
         const res = await axios.post('http://localhost:1337/api/plots', {
           data: { item: plot },
         });
-        // this.data = res.data;
       } catch (err) {
         console.error(err);
       }
@@ -35,7 +33,6 @@ export const usePlotsStore = defineStore('plotsStore', {
     async fetchDeletePlots(id) {
       try {
         const res = await axios.delete(`http://localhost:1337/api/plots/${id}`);
-        // this.data = res.data;
         console.log(res.data);
       } catch (err) {
         console.error(err);
@@ -46,8 +43,6 @@ export const usePlotsStore = defineStore('plotsStore', {
         const res = await axios.put(`http://localhost:1337/api/plots/${id}`, {
           data: { item: plot },
         });
-        // this.data = res.data;
-        console.log(res.data);
       } catch (err) {
         console.error(err);
       }

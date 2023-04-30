@@ -4,7 +4,6 @@ import { storeToRefs } from 'pinia';
 import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { usePlotsStore } from './app/usePlotsStore';
-import GroupBlock from './components/GroupBlock.vue';
 
 const store = usePlotsStore();
 const { fetchPlots, fetchAddPlots, fetchDeletePlots, fetchUpdatePlots } = store;
