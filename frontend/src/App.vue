@@ -1,12 +1,13 @@
 <script setup>
-import { onMounted, nextTick, h, render, watch } from 'vue';
+import { onMounted, nextTick, h, render } from 'vue';
 import { storeToRefs } from 'pinia';
 import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { usePlotsStore } from './app/usePlotsStore';
 import MapPopup from '../components/MapPopup.vue';
 const store = usePlotsStore();
-const { fetchPlots, fetchAddPlots, addPlot } = store;
+const { fetchPlots, fetchAddPlots, addPlot, deletePlot, fetchDeletePlots } =
+  store;
 const { data } = storeToRefs(store);
 
 onMounted(() => {
@@ -44,15 +45,18 @@ onMounted(() => {
       type: 'fill',
       source: 'plots',
       paint: {
-        'fill-color': 'rgba(200, 100, 240, 0.4)',
-        'fill-outline-color': 'rgba(200, 100, 240, 1)',
+        'fill-color': 'rgba(3, 140, 252, 0.4)',
+        'fill-outline-color': 'rgba(3, 140, 252, 1)',
       },
     });
   }
   map.on('contextmenu', 'plots-layer', function (e) {
     const featureId = e.features[0].id;
-    console.log(e.features[0].id);
-    new mapboxgl.Popup()
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: true,
+      closeOnMove: true,
+    })
       .setLngLat(e.lngLat)
       .setHTML('<div id="map-popup-content"></div>')
       .addTo(map);
@@ -60,9 +64,14 @@ onMounted(() => {
     nextTick(() => {
       const popupComp = h(MapPopup, {
         id: featureId,
-        onClick: () => {
-          deletePlot(134);
+        onClick: (e) => {
+          deletePlot(featureId);
           fetchDeletePlots(featureId);
+          map.getSource('plots').setData({
+            type: 'FeatureCollection',
+            features: data.value,
+          });
+          popup.remove();
         },
       });
 
@@ -128,7 +137,9 @@ p {
   border-radius: 20px;
 }
 .mapboxgl-popup {
-  width: 200px;
+  display: flex;
+  justify-content: center;
+  width: 100px;
   height: 200px;
   color: black;
   font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
