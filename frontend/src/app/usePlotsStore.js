@@ -5,8 +5,26 @@ export const usePlotsStore = defineStore('plotsStore', {
   state: () => ({
     data: [],
   }),
-  getters: { doubleCount: (state) => state.data * 2 },
+  getters: {
+    featureCollectionData(state) {
+      return {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: state.data,
+        },
+      };
+    },
+  },
   actions: {
+    addPlot(newPlot) {
+      this.data.push(newPlot);
+    },
+    deletePlot(newPlot) {
+      this.data = this.data.filter((item) => {
+        return item.id !== newPlot;
+      });
+    },
     async fetchPlots() {
       try {
         const res = await axios.get('http://localhost:1337/api/plots');

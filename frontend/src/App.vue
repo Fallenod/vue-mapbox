@@ -1,31 +1,16 @@
 <script setup>
-import { onMounted, toRaw, watch } from 'vue';
+import { onMounted, nextTick, h, render, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { usePlotsStore } from './app/usePlotsStore';
-
+import MapPopup from '../components/MapPopup.vue';
 const store = usePlotsStore();
-const { fetchPlots, fetchAddPlots, fetchDeletePlots, fetchUpdatePlots } = store;
+const { fetchPlots, fetchAddPlots, addPlot } = store;
 const { data } = storeToRefs(store);
+
 onMounted(() => {
   fetchPlots();
-  function loadArea(e) {
-    data.value.map((item) => draw.add(item));
-  }
-  function createArea(e) {
-    draw.add(e.features[0]);
-    fetchAddPlots(e.features[0]);
-  }
-  function deleteArea(e) {
-    const currentId = e.features[0].id;
-    fetchDeletePlots(currentId);
-  }
-  function updateArea(e) {
-    const currentPlot = e.features[0];
-    const currentId = e.features[0].id;
-    fetchUpdatePlots(currentId, currentPlot);
-  }
   mapboxgl.accessToken =
     'pk.eyJ1IjoiZmFsbGVub2QiLCJhIjoiY2xndDlubng0MG15aTNmb2NhbmtpcG9kcSJ9.lPum8fgMB8DxAmaO1UXOuA';
   const map = new mapboxgl.Map({
@@ -39,27 +24,80 @@ onMounted(() => {
 
     controls: {
       polygon: true,
-      trash: true,
     },
 
     defaultMode: 'draw_polygon',
   });
-  map.addControl(draw);
+  function loadArea(e) {
+    map.addControl(draw);
+
+    map.on('draw.create', createArea);
+    map.addSource('plots', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: data.value,
+      },
+    });
+    map.addLayer({
+      id: 'plots-layer',
+      type: 'fill',
+      source: 'plots',
+      paint: {
+        'fill-color': 'rgba(200, 100, 240, 0.4)',
+        'fill-outline-color': 'rgba(200, 100, 240, 1)',
+      },
+    });
+  }
+  map.on('contextmenu', 'plots-layer', function (e) {
+    const featureId = e.features[0].id;
+    console.log(e.features[0].id);
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML('<div id="map-popup-content"></div>')
+      .addTo(map);
+
+    nextTick(() => {
+      const popupComp = h(MapPopup, {
+        id: featureId,
+        onClick: () => {
+          deletePlot(134);
+          fetchDeletePlots(featureId);
+        },
+      });
+
+      render(popupComp, document.getElementById('map-popup-content'));
+    });
+  });
+  map.on('mouseenter', 'states-layer', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  map.on('mouseleave', 'states-layer', () => {
+    map.getCanvas().style.cursor = '';
+  });
+  function createArea(e) {
+    addPlot(e.features[0]);
+    fetchAddPlots(e.features[0]);
+
+    map.getSource('plots').setData({
+      type: 'FeatureCollection',
+      features: data.value,
+    });
+    draw.trash();
+  }
+
   map.on('load', loadArea);
-  map.on('draw.create', createArea);
-  map.on('draw.delete', deleteArea);
-  map.on('draw.update', updateArea);
 });
 </script>
 
 <template>
   <div class="main">
     <div id="map"></div>
-    <GroupBlock :data="data" />
   </div>
 </template>
 
-<style scoped>
+<style>
 .main {
   display: flex;
   flex-direction: row;
@@ -88,5 +126,11 @@ p {
   width: 100%;
   height: 100%;
   border-radius: 20px;
+}
+.mapboxgl-popup {
+  width: 200px;
+  height: 200px;
+  color: black;
+  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
 }
 </style>
